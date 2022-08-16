@@ -6,11 +6,6 @@ import { Context, Extra, Markup } from 'telegraf'
 import { strings } from '@helpers/strings'
 import { constructMessageWithEntities } from '@helpers/newcomers/constructMessageWithEntities'
 import { getName, getUsername } from '@helpers/getUsername'
-import {
-  languageForPromo,
-  promoExceptions,
-  promoAdditions,
-} from '@helpers/promo'
 
 export async function notifyCandidate(
   ctx: Context,
@@ -57,12 +52,7 @@ export async function notifyCandidate(
           $title: (await ctx.getChat()).title,
           $equation: equation ? (equation.question as string) : '',
           $seconds: `${chat.timeGiven}`,
-        },
-        (process.env.PREMIUM !== 'true' &&
-          !promoExceptions.includes(ctx.chat.id)) ||
-          (process.env.PREMIUM === 'true' &&
-            ctx.dbchat.subscriptionStatus !== SubscriptionStatus.active),
-        languageForPromo(chat)
+        }
       )
       if (image) {
         extra = extra.HTML(true)
@@ -88,15 +78,7 @@ export async function notifyCandidate(
         message.text,
         message.entities
       )
-      const promoAddition = promoAdditions[languageForPromo(chat)](
-        Math.random()
-      )
-      message.text =
-        promoExceptions.includes(ctx.chat.id) ||
-        (process.env.PREMIUM === 'true' &&
-          ctx.dbchat.subscriptionStatus === SubscriptionStatus.active)
-          ? `${getUsername(candidate)}\n\n${formattedText}`
-          : `${getUsername(candidate)}\n\n${formattedText}\n${promoAddition}`
+      message.text = `${getUsername(candidate)}\n\n${formattedText}`
       try {
         message.chat = undefined
         const sentMessage = await ctx.telegram.sendCopy(chat.id, message, {
@@ -117,56 +99,28 @@ export async function notifyCandidate(
   } else {
     extra = extra.HTML(true)
     if (image) {
-      const promoAddition = promoAdditions[languageForPromo(chat)](
-        Math.random()
-      )
       return ctx.replyWithPhoto({ source: image.png } as any, {
         caption:
-          promoExceptions.includes(ctx.chat.id) ||
-          (process.env.PREMIUM === 'true' &&
-            ctx.dbchat.subscriptionStatus === SubscriptionStatus.active)
-            ? `<a href="tg://user?id=${candidate.id}">${getUsername(
-                candidate
-              )}</a>${warningMessage} (${chat.timeGiven} ${strings(
-                chat,
-                'seconds'
-              )})`
-            : `<a href="tg://user?id=${candidate.id}">${getUsername(
-                candidate
-              )}</a>${warningMessage} (${chat.timeGiven} ${strings(
-                chat,
-                'seconds'
-              )})\n${promoAddition}`,
+          `<a href="tg://user?id=${candidate.id}">${getUsername(
+            candidate
+          )}</a>${warningMessage} (${chat.timeGiven} ${strings(
+            chat,
+            'seconds'
+          )})`,
         parse_mode: 'HTML',
       })
     } else {
-      const promoAddition = promoAdditions[languageForPromo(chat)](
-        Math.random()
-      )
       return ctx.replyWithMarkdown(
-        promoExceptions.includes(ctx.chat.id) ||
-          (process.env.PREMIUM === 'true' &&
-            ctx.dbchat.subscriptionStatus === SubscriptionStatus.active)
-          ? `${
-              chat.captchaType === CaptchaType.DIGITS
-                ? `(${equation.question}) `
-                : ''
-            }<a href="tg://user?id=${candidate.id}">${getUsername(
-              candidate
-            )}</a>${warningMessage} (${chat.timeGiven} ${strings(
-              chat,
-              'seconds'
-            )})`
-          : `${
-              chat.captchaType === CaptchaType.DIGITS
-                ? `(${equation.question}) `
-                : ''
-            }<a href="tg://user?id=${candidate.id}">${getUsername(
-              candidate
-            )}</a>${warningMessage} (${chat.timeGiven} ${strings(
-              chat,
-              'seconds'
-            )})\n${promoAddition}`,
+        `${
+          chat.captchaType === CaptchaType.DIGITS
+            ? `(${equation.question}) `
+            : ''
+        }<a href="tg://user?id=${candidate.id}">${getUsername(
+          candidate
+        )}</a>${warningMessage} (${chat.timeGiven} ${strings(
+          chat,
+          'seconds'
+        )})`,
         extra
       )
     }
